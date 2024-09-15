@@ -29,11 +29,11 @@ class ExcelClient():
             # Attempt to read the Excel file, handling potential exceptions
             if header:
                 self.dataframe = pd.read_excel(
-                    self.file, sheet_name=sheet_name, header=0
+                    self.file_path, sheet_name=sheet_name, header=0
                 )
             else:
                 self.dataframe = pd.read_excel(
-                    self.file, sheet_name=sheet_name
+                    self.file_path, sheet_name=sheet_name
                 )
         
         except FileNotFoundError as e:
@@ -69,15 +69,14 @@ class ExcelClient():
         except Exception as e:
             self.logger.error(f"Exception raised during datatype conversion: {e}")
             raise ValueError(f"Exception raised during datatype conversion: {e}") from e
+        
 
-    def _format_df(self) -> pd.DataFrame:
+    def _format_df(self, validate: bool = True) -> None:
         """
         Formats a DataFrame by selecting features, filtering out empty rows,
         formatting feature datatypes and validating the dataset.
         Args:
-            df: A Pandas DataFrame to be formatted.
-        Returns:
-            The formatted DataFrame.
+            validate: Whether to perform validation after formatting
         """
         # Select only the desired features from the DataFrame
         # This filtering method avoids unnecessary computation and memory usage
@@ -89,11 +88,14 @@ class ExcelClient():
 
         # Format feature datatypes and validate dataset
         # It's a good practice to separate formatting from validation
-        self.dataframe = self._validate_data()
+        if validate:
+            self._validate_data()
 
-        return formatted_df
 
-    def load_excel(self, sheet_name: str, header: bool = True) -> None:
+    def load_excel(self,
+                   sheet_name: str,
+                   header: bool = True,
+                   return_output: bool = False) -> None:
         """
         Read in Excel file, format and validate data.
         Args:
@@ -101,6 +103,7 @@ class ExcelClient():
             sheet (str): Name of the sheet to read from.
             header (bool, optional): Whether to use the first row as column headers
                 Defaults to True.
+            return_output (bool): Whether to return the formatted DataFrame
         Returns:
             pd.DataFrame: The formatted and validated DataFrame.
         Raises:
@@ -109,7 +112,10 @@ class ExcelClient():
         """
         # Read in Excel file
         self.logger.info("Reading in Excel file")
-        self.to_df(sheet_name=sheet_name, header=header)
+        self._to_df(sheet_name=sheet_name, header=header)
         # Formatting - feature selectioncleaning and validation
         self.logger.info("Formatting and validating data")
-        self.format_df()
+        self._format_df(validate=True)
+
+        if return_output:
+            return self.dataframe
