@@ -1,7 +1,7 @@
 import logging
 import pandas as pd
 
-import onedrive_file_management.constants as c
+import constants as c
 
 class ExcelCient():
     def __init__(self):
