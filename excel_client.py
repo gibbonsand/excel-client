@@ -1,13 +1,20 @@
+""" This module provides the ExcelClient class to handle Excel file data """
+
 import logging
 import pandas as pd
 
 import excel_client.constants as c
 
 class ExcelClient():
+    """
+    Class designed to load, format, validate and export data contained in Excel files
+    """
     def __init__(self,
                  file_path: str):
         self.logger = logging.getLogger(__name__)
         self.file_path = file_path
+        self.dataframe = pd.DataFrame()
+
 
     def _to_df(self,
               sheet_name: str,
@@ -35,16 +42,16 @@ class ExcelClient():
                 self.dataframe = pd.read_excel(
                     self.file_path, sheet_name=sheet_name
                 )
-        
+
         except FileNotFoundError as e:
             # Raise a specific error message for non-existent files
-            self.logger.error(f"File '{file_name}' not found.")
-            raise FileNotFoundError(f"File '{file_name}' not found.") from e
-        
+            self.logger.error("File '%s' not found.", self.file_path)
+            raise FileNotFoundError(f"File '{self.file_path}' not found.") from e
+
         except Exception as e:
             # Raise other exceptions that occurred during file readout or parsing
-            self.logger.error(f"Exception raised during file readout: {e}")
-            raise Exception(f"Exception raised during file readout: {e}") from e
+            self.logger.error("Exception raised during file readout: %s", e)
+            raise ValueError(f"Exception raised during file readout: {e}") from e
 
     def _validate_data(self) -> None:
         """
@@ -55,21 +62,23 @@ class ExcelClient():
         # Check for missing values in the input dataset
         missing_values = self.dataframe.isna().any(axis=1)
 
-        # If there are any missing values, raise a ValueError with detailed message and affected rows
+        # If there are any missing values, raise a ValueError with detailed message
+        # and affected rows
         if missing_values.any():
             raise ValueError(
-                f"Missing values found in the input dataset:\n{self.dataframe.loc[missing_values]}\n"
+                f"Missing values found in the input dataset: \
+                    \n{self.dataframe.loc[missing_values]}\n"
             )
         else:
             self.logger.debug("Dataset loaded, no apparent missing values.")
-    
+
         # Attempt to convert DataFrame datatypes according to the FEATURES constant
         try:
             self.dataframe = self.dataframe.astype(c.FEATURES)
         except Exception as e:
-            self.logger.error(f"Exception raised during datatype conversion: {e}")
+            self.logger.error("Exception raised during datatype conversion: %s", e)
             raise ValueError(f"Exception raised during datatype conversion: {e}") from e
-        
+
 
     def _format_df(self, validate: bool = True) -> None:
         """
@@ -95,7 +104,7 @@ class ExcelClient():
     def load_excel(self,
                    sheet_name: str,
                    header: bool = True,
-                   return_output: bool = False) -> None:
+                   return_output: bool = False) -> None or pd.DataFrame:
         """
         Read in Excel file, format and validate data.
         Args:
@@ -117,5 +126,5 @@ class ExcelClient():
         self.logger.info("Formatting and validating data")
         self._format_df(validate=True)
 
-        if return_output:
-            return self.dataframe
+        returned_object = self.dataframe if return_output else None
+        return returned_object
